@@ -2,11 +2,17 @@ from useragents import search_strings
 from flask import request, g
 from functools import wraps
 
-def is_mobile(request):
+def is_mobile():
+    return is_mobile_request(request)
+
+def is_mobile_request(request):
     if hasattr(g, "mobile"):
         return g.mobile
 
-    if hasattr(request, 'HTTP_X_OPERAMINI_FEATURES'):
+    if request is None or not hasattr(request, 'headers'):
+        return False
+
+    if 'X-Operamini-Features' in request.headers:
         # Then it's running opera mini. 'Nuff said.
         # Reference from:
         #  http://dev.opera.com/articles/view/opera-mini-request-headers/
@@ -14,23 +20,24 @@ def is_mobile(request):
         return True
 
 
-    if hasattr(request, 'HTTP_ACCEPT'):
-        s = request.HTTP_ACCEPT.lower()
+    if 'Accept' in request.headers:
+        s = request.headers['Accept'].lower()
         if 'application/vnd.wap.xhtml+xml' in s:
             # Then it's a wap browser
             g.mobile = True
             return True
 
-    if hasattr(request, 'HTTP_USER_AGENT'):
+    if 'User-Agent' in request.headers:
         # This takes the most processing. Surprisingly enough, when I
         # Experimented on my own machine, this was the most efficient
         # algorithm. Certainly more so than regexes.
         # Also, Caching didn't help much, with real-world caches.
-        s = request.HTTP_USER_AGENT.lower()
+        s = request.headers['User-Agent'].lower()
         for ua in search_strings:
             if ua in s:
                 g.mobile = True
                 return True
+
     g.mobile = False
     return False
 
@@ -42,7 +49,7 @@ def detect_mobile(view):
 
     @wraps(view)
     def detected(*args, **kwargs):
-        request.mobile = is_mobile(request)
+        request.mobile = is_mobile_request(request)
         return view(*args, **kwargs)
     detected.__doc__ = "%s\n[Wrapped by detect_mobile which detects if the request is from a phone]" % view.__doc__
     return detected
