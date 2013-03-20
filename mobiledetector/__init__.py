@@ -3,16 +3,21 @@ from flask import request, g
 from functools import wraps
 
 def is_mobile(request):
+    if hasattr(g, "mobile"):
+        return g.mobile
+
     if hasattr(request, 'HTTP_X_OPERAMINI_FEATURES'):
         # Then it's running opera mini. 'Nuff said.
         # Reference from:
         #  http://dev.opera.com/articles/view/opera-mini-request-headers/
+        g.mobile = True
         return True
 
     if hasattr(request, 'HTTP_ACCEPT'):
         s = request.HTTP_ACCEPT.lower()
         if 'application/vnd.wap.xhtml+xml' in s:
             # Then it's a wap browser
+            g.mobile = True
             return True
 
     if hasattr(request, 'HTTP_USER_AGENT'):
@@ -23,7 +28,9 @@ def is_mobile(request):
         s = request.HTTP_USER_AGENT.lower()
         for ua in search_strings:
             if ua in s:
+                g.mobile = True
                 return True
+    g.mobile = False
     return False
 
 
