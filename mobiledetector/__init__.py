@@ -13,6 +13,7 @@ def is_mobile(request):
         g.mobile = True
         return True
 
+
     if hasattr(request, 'HTTP_ACCEPT'):
         s = request.HTTP_ACCEPT.lower()
         if 'application/vnd.wap.xhtml+xml' in s:
